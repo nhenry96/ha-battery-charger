@@ -135,8 +135,6 @@ views:
     cards:
       - type: conditional
         conditions:
-          - entity: input_boolean.em_api_server
-            state: "on"
           - condition: screen
             media_query: "(min-width: 900px)"
         view_layout:
@@ -163,8 +161,6 @@ views:
 
       - type: conditional
         conditions:
-          - entity: input_boolean.em_api_server
-            state: "on"
           - condition: screen
             media_query: "(max-width: 899px)"
         view_layout:
@@ -199,19 +195,6 @@ views:
                 }
               }
 
-      - type: conditional
-        conditions:
-          - entity: input_boolean.em_api_server
-            state: "off"
-        view_layout:
-          grid-area: main
-        card:
-          type: markdown
-          content: >-
-            # Energy Availability Score Dashboard
-
-            This dashboard is available for Premium Subscribers.
-
   - title: Energy Profit Potential Scores
     path: energy-profit-potential-scores
     type: custom:grid-layout
@@ -240,10 +223,10 @@ views:
     cards:
       - type: conditional
         conditions:
-          - entity: input_boolean.em_api_server
-            state: "on"
           - condition: screen
             media_query: "(min-width: 900px)"
+          - entity: input_select.electricity_provider
+            state_not: "Flow Power"
         view_layout:
           grid-area: main
         card:
@@ -268,10 +251,10 @@ views:
 
       - type: conditional
         conditions:
-          - entity: input_boolean.em_api_server
-            state: "on"
           - condition: screen
             media_query: "(max-width: 899px)"
+          - entity: input_select.electricity_provider
+            state_not: "Flow Power"
         view_layout:
           grid-area: main
         card:
@@ -306,12 +289,8 @@ views:
 
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - entity: input_boolean.em_api_server
-                state: "off"
-              - entity: input_select.electricity_provider
-                state: "Flow Power"
+          - entity: input_select.electricity_provider
+            state: "Flow Power"
         view_layout:
           grid-area: main
         card:
@@ -319,8 +298,5 @@ views:
           content: >-
             # Energy Profit Potential Dashboard
 
-            This dashboard is available for Premium Subscribers that use Amber Electric or LocalVolts.
-
-            
             The content is not applicable to Flow Power users.
 

@@ -501,213 +501,187 @@ views:
                   })
                 show:
                   extremas: min+time
-        - type: custom:state-switch
-          entity: input_boolean.em_api_server
-          states:
-            "off":
-              type: markdown
-              content: >
-                <div style="background-color: var(--primary-color); color: white;
-                padding: 10px 16px; border-radius: 4px 4px 0 0; font-weight: bold;
-                font-size: 1.2em;">
-                <h3>Next 24hr's Energy Plan</h3>
-                
-                Premium subscribers will receive a 24hr forecast of their energy use in chart format.
-                
-                
-                This will include solar generation, battery charge and discharge, battery SoC, grid import and export.
-                It will also show when any scheduled charges are planned, and when any energy exports are planned
-                due to current sell price forecasts.
-                
-                This is useful when planning ahead for your energy usage, to see an estimate of what your battery level
-                is likely to get down to over night, and by when it will be charged the next day.
-                </div>
-            "on":
-              type: custom:apexcharts-card
-              header:
-                title: Next 24hr's Energy Plan (forecast only, subject to change)
-                show: true
-              graph_span: 24h
-              span:
-                start: minute
-              now:
-                show: true
-              yaxis:
-                - id: kw
-                  min: 0
-                  decimals: 1
-                  apex_config:
-                    title:
-                      text: kW
-                - id: soc
-                  min: 0
-                  max: 100
-                  decimals: 0
-                  opposite: true
-                  apex_config:
-                    title:
-                      text: SoC %
-              series:
-                - entity: sensor.energy_manager_plan
-                  name: PV (kW)
-                  yaxis_id: kw
-                  type: area
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.pv_kw ??
-                    0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Load (kW)
-                  yaxis_id: kw
-                  type: line
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.load_kw ??
-                    0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Grid import (kW)
-                  yaxis_id: kw
-                  type: column
-                  stroke_width: 0
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.expected?.grid_import_kw ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Grid export (kW)
-                  yaxis_id: kw
-                  type: column
-                  stroke_width: 0
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.expected?.grid_export_kw ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Battery charge (kW)
-                  yaxis_id: kw
-                  type: column
-                  stroke_width: 0
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.expected?.battery_charge_kw ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Battery discharge (kW)
-                  yaxis_id: kw
-                  type: column
-                  stroke_width: 0
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.expected?.battery_discharge_kw ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Forced charge (kW)
-                  yaxis_id: kw
-                  type: line
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.setpoints?.force_charge_kw ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Forced export (kW)
-                  yaxis_id: kw
-                  type: line
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.setpoints?.force_export_kw ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Battery SoC (%)
-                  yaxis_id: soc
-                  type: line
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.expected?.soc_pct_end ?? 0)]);
+        - type: custom:apexcharts-card
+          header:
+            title: Next 24hr's Energy Plan (forecast only, subject to change)
+            show: true
+          graph_span: 24h
+          span:
+            start: minute
+          now:
+            show: true
+          yaxis:
+            - id: kw
+              min: 0
+              decimals: 1
               apex_config:
-                chart:
-                  height: 320
-                legend:
-                  show: true
-                  formatter: 'EVAL:function(seriesName, opts) { return seriesName; }'
-                tooltip:
-                  shared: true
-                  intersect: false
-                  followCursor: true
-                plotOptions:
-                  bar:
-                    columnWidth: 95%
-                stroke:
-                  width: 2
-        - type: custom:state-switch
-          entity: input_boolean.em_api_server
-          states:
-            "on":
-              type: custom:apexcharts-card
-              header:
-                title: Next 24hr's Price & Curtailment Forecast (subject to change)
-                show: true
-              graph_span: 24h
-              span:
-                start: minute
-              now:
-                show: true
+                title:
+                  text: kW
+            - id: soc
+              min: 0
+              max: 100
+              decimals: 0
+              opposite: true
               apex_config:
-                chart:
-                  height: 220
-                legend:
-                  show: true
-                  formatter: 'EVAL:function(seriesName, opts) { return seriesName; }'
-              yaxis:
-                - id: price
-                  decimals: 3
-                  apex_config:
-                    title:
-                      text: $/kWh
-                - id: curtail
-                  opposite: true
-                  min: 0
-                  max: 100
-                  decimals: 0
-                  apex_config:
-                    title:
-                      text: Curtail (%)
-              series:
-                - entity: sensor.energy_manager_plan
-                  name: Buy Price ($/kWh)
-                  type: area
-                  color: red
-                  opacity: 0.3
-                  yaxis_id: price
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.buy_price ??
-                    0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Sell Price ($/kWh)
-                  type: area
-                  color: green
-                  opacity: 0.3
-                  yaxis_id: price
-                  stroke_width: 2
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.sell_price
-                    ?? 0)]);
-                - entity: sensor.energy_manager_plan
-                  name: Curtailment (%)
-                  type: column
-                  yaxis_id: curtail
-                  data_generator: >
-                    const t = entity.attributes.energy_plan?.timeline || [];
-                    return t.map(p => [new Date(p.ts).getTime(),
-                    Number(p.setpoints?.curtail_pct ?? 0)]);
+                title:
+                  text: SoC %
+          series:
+            - entity: sensor.energy_manager_plan
+              name: PV (kW)
+              yaxis_id: kw
+              type: area
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.pv_kw ??
+                0)]);
+            - entity: sensor.energy_manager_plan
+              name: Load (kW)
+              yaxis_id: kw
+              type: line
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.load_kw ??
+                0)]);
+            - entity: sensor.energy_manager_plan
+              name: Grid import (kW)
+              yaxis_id: kw
+              type: column
+              stroke_width: 0
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.expected?.grid_import_kw ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Grid export (kW)
+              yaxis_id: kw
+              type: column
+              stroke_width: 0
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.expected?.grid_export_kw ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Battery charge (kW)
+              yaxis_id: kw
+              type: column
+              stroke_width: 0
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.expected?.battery_charge_kw ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Battery discharge (kW)
+              yaxis_id: kw
+              type: column
+              stroke_width: 0
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.expected?.battery_discharge_kw ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Forced charge (kW)
+              yaxis_id: kw
+              type: line
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.setpoints?.force_charge_kw ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Forced export (kW)
+              yaxis_id: kw
+              type: line
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.setpoints?.force_export_kw ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Battery SoC (%)
+              yaxis_id: soc
+              type: line
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.expected?.soc_pct_end ?? 0)]);
+          apex_config:
+            chart:
+              height: 320
+            legend:
+              show: true
+              formatter: 'EVAL:function(seriesName, opts) { return seriesName; }'
+            tooltip:
+              shared: true
+              intersect: false
+              followCursor: true
+            plotOptions:
+              bar:
+                columnWidth: 95%
+            stroke:
+              width: 2
+        - type: custom:apexcharts-card
+          header:
+            title: Next 24hr's Price & Curtailment Forecast (subject to change)
+            show: true
+          graph_span: 24h
+          span:
+            start: minute
+          now:
+            show: true
+          apex_config:
+            chart:
+              height: 220
+            legend:
+              show: true
+              formatter: 'EVAL:function(seriesName, opts) { return seriesName; }'
+          yaxis:
+            - id: price
+              decimals: 3
+              apex_config:
+                title:
+                  text: $/kWh
+            - id: curtail
+              opposite: true
+              min: 0
+              max: 100
+              decimals: 0
+              apex_config:
+                title:
+                  text: Curtail (%)
+          series:
+            - entity: sensor.energy_manager_plan
+              name: Buy Price ($/kWh)
+              type: area
+              color: red
+              opacity: 0.3
+              yaxis_id: price
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.buy_price ??
+                0)]);
+            - entity: sensor.energy_manager_plan
+              name: Sell Price ($/kWh)
+              type: area
+              color: green
+              opacity: 0.3
+              yaxis_id: price
+              stroke_width: 2
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(), Number(p.inputs?.sell_price
+                ?? 0)]);
+            - entity: sensor.energy_manager_plan
+              name: Curtailment (%)
+              type: column
+              yaxis_id: curtail
+              data_generator: >
+                const t = entity.attributes.energy_plan?.timeline || [];
+                return t.map(p => [new Date(p.ts).getTime(),
+                Number(p.setpoints?.curtail_pct ?? 0)]);
     - type: custom:layout-card
       view_layout:
         grid_column: 1
