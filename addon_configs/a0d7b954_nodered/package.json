@@ -1,0 +1,11 @@
+{
+    "name": "node-red-project",
+    "description": "A Node-RED Project",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "node-red-contrib-sun-position": "~3.0.0-alpha2",
+        "node-red-contrib-time-switch": "~1.1.7",
+        "node-red-contrib-traffic": "~0.2.1"
+    }
+}
