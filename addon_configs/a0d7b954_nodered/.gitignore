@@ -1,0 +1,4 @@
+# Node-RED credential files contain secrets — never commit these
+*_cred.json
+*.cred.json
+.config.runtime.json
