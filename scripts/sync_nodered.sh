@@ -23,13 +23,20 @@ fi
 
 echo "Syncing ${SRC} -> ${DEST}"
 
-rsync -av \
-  --exclude='*_cred.json' \
-  --exclude='*.cred.json' \
-  --exclude='.config.runtime.json' \
-  --exclude='node_modules/' \
-  --exclude='.npm/' \
-  "${SRC}/" "${DEST}/"
+mkdir -p "${DEST}"
+
+find "${SRC}" -maxdepth 1 -type f | while read -r f; do
+  filename="$(basename "${f}")"
+  case "${filename}" in
+    *_cred.json|*.cred.json|.config.runtime.json)
+      echo "  Skipping (credentials): ${filename}"
+      ;;
+    *)
+      echo "  Copying: ${filename}"
+      cp "${f}" "${DEST}/${filename}"
+      ;;
+  esac
+done
 
 echo ""
 echo "Done. Review changes with: git diff addon_configs/"
