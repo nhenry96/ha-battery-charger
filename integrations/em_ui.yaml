@@ -1,0 +1,37 @@
+# === ENERGY_MANAGER_UI_START v0.3.2 ===
+
+lovelace:
+  dashboards:
+    energy-costs:
+      mode: yaml
+      title: "Costs"
+      icon: mdi:currency-usd
+      show_in_sidebar: true
+      filename: dashboards/energy_manager_costs.yaml
+    energy-overview:
+      mode: yaml
+      title: "Energy Overview"
+      icon: mdi:home-lightning-bolt
+      show_in_sidebar: true
+      filename: dashboards/energy_manager_overview.yaml
+    energy-pv:
+      mode: yaml
+      title: "PV"
+      icon: mdi:solar-power
+      show_in_sidebar: true
+      filename: dashboards/energy_manager_pv.yaml
+    grafana-energy:
+      mode: yaml
+      title: Grafana
+      icon: mdi:chart-line
+      show_in_sidebar: true
+      filename: dashboards/grafana_energymanager.yaml
+
+recorder:
+  exclude:
+    entities:
+      - sensor.nodered_forecast
+      - sensor.energy_manager_plan
+      - sensor.energy_manager_motd
+# === ENERGY_MANAGER_UI_END ===
+

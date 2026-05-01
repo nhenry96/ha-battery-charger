@@ -1,0 +1,326 @@
+title: Grafana
+views:
+  - title: Energy Manager
+    path: energy-manager
+    type: custom:grid-layout
+    card_mod:
+      style: |
+        :host {
+          overflow: hidden !important;
+          height: 100vh !important;
+        }
+        #view {
+          overflow: hidden !important;
+        }
+        hui-view {
+          overflow: hidden !important;
+        }
+        .grid-layout {
+          overflow: hidden !important;
+          height: 100vh !important;
+        }
+    layout:
+      grid-template-columns: 100%
+      grid-template-rows: 100vh
+      grid-template-areas: |
+        "main"
+
+    cards:
+      - type: conditional
+        conditions:
+          - condition: screen
+            media_query: "(min-width: 900px)"
+          - condition: or
+            conditions:
+              - entity: input_select.electricity_provider
+                state: "Amber Electric"
+              - entity: input_select.electricity_provider
+                state: "LocalVolts"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/fdv5swis884cga/fdv5swis884cga?orgId=1&kiosk&keepTime=1&includeVars=1&refresh=10s
+      - type: conditional
+        conditions:
+          - condition: screen
+            media_query: "(min-width: 900px)"
+          - entity: input_select.electricity_provider
+            state: "Flow Power"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/fdv5swis884cga-flow/fdv5swis884cga-flow?orgId=1&kiosk&keepTime=1&includeVars=1&refresh=10s
+
+      - type: conditional
+        conditions:
+          - condition: screen
+            media_query: "(max-width: 899px)"
+          - entity: input_select.electricity_provider
+            state: "Flow Power"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/fdv5swis884cga-flow-mobile/fdv5swis884cga-flow-mobile?orgId=1&kiosk&keepTime=1&includeVars=1&refresh=10s
+
+      - type: conditional
+        conditions:
+          - condition: screen
+            media_query: "(max-width: 899px"
+          - condition: or
+            conditions:
+              - entity: input_select.electricity_provider
+                state: "Amber Electric"
+              - entity: input_select.electricity_provider
+                state: "LocalVolts"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/fdv5swis884cga-mobile/fdv5swis884cga-mobile?orgId=1&kiosk&keepTime=1&includeVars=1&refresh=10s
+          card_mod:
+            style: |
+              ha-card {
+                height: 100vh !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none;
+                box-shadow: none;
+                border-radius: 0;
+                overflow: visible !important;
+              }
+              ha-card > div,
+              ha-card iframe {
+                height: 100% !important;
+                width: 100% !important;
+                display: block;
+              }
+
+              @media (max-width: 700px) {
+                ha-card > div {
+                  transform: scale(0.9);
+                  transform-origin: 0 0;
+                  width: calc(100% / 0.9);
+                  height: calc(100% / 0.9);
+                }
+              }
+
+  - title: Energy Availability Scores
+    path: energy-availability-scores
+    type: custom:grid-layout
+    card_mod:
+      style: |
+        :host {
+          overflow: hidden !important;
+          height: 100vh !important;
+        }
+        #view {
+          overflow: hidden !important;
+        }
+        hui-view {
+          overflow: hidden !important;
+        }
+        .grid-layout {
+          overflow: hidden !important;
+          height: 100vh !important;
+        }
+    layout:
+      grid-template-columns: 100%
+      grid-template-rows: 100vh
+      grid-template-areas: |
+        "main"
+
+    cards:
+      - type: conditional
+        conditions:
+          - entity: input_boolean.em_api_server
+            state: "on"
+          - condition: screen
+            media_query: "(min-width: 900px)"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/890c9788-2a7b-4cd4-8091-698b5dd2424d/890c9788-2a7b-4cd4-8091-698b5dd2424d?orgId=1&kiosk&keepTime=1&includeVars=1&refresh=10s
+          card_mod:
+            style: |
+              ha-card {
+                height: 100vh !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none;
+                box-shadow: none;
+                border-radius: 0;
+              }
+              ha-card > div,
+              ha-card iframe {
+                height: 100% !important;
+                width: 100% !important;
+                display: block;
+              }
+
+      - type: conditional
+        conditions:
+          - entity: input_boolean.em_api_server
+            state: "on"
+          - condition: screen
+            media_query: "(max-width: 899px)"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/890c9788-2a7b-4cd4-8091-69mobile/890c9788-2a7b-4cd4-8091-69mobile>?orgId=1&keepTime=1&kiosk&includeVars=1&refresh=10s
+          card_mod:
+            style: |
+              ha-card {
+                height: 100vh !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none;
+                box-shadow: none;
+                border-radius: 0;
+                overflow: visible !important;
+              }
+              ha-card > div,
+              ha-card iframe {
+                height: 100% !important;
+                width: 100% !important;
+                display: block;
+              }
+
+              @media (max-width: 700px) {
+                ha-card > div {
+                  transform: scale(0.9);
+                  transform-origin: 0 0;
+                  width: calc(100% / 0.9);
+                  height: calc(100% / 0.9);
+                }
+              }
+
+      - type: conditional
+        conditions:
+          - entity: input_boolean.em_api_server
+            state: "off"
+        view_layout:
+          grid-area: main
+        card:
+          type: markdown
+          content: >-
+            # Energy Availability Score Dashboard
+
+            This dashboard is available for Premium Subscribers.
+
+  - title: Energy Profit Potential Scores
+    path: energy-profit-potential-scores
+    type: custom:grid-layout
+    card_mod:
+      style: |
+        :host {
+          overflow: hidden !important;
+          height: 100vh !important;
+        }
+        #view {
+          overflow: hidden !important;
+        }
+        hui-view {
+          overflow: hidden !important;
+        }
+        .grid-layout {
+          overflow: hidden !important;
+          height: 100vh !important;
+        }
+    layout:
+      grid-template-columns: 100%
+      grid-template-rows: 100vh
+      grid-template-areas: |
+        "main"
+
+    cards:
+      - type: conditional
+        conditions:
+          - entity: input_boolean.em_api_server
+            state: "on"
+          - condition: screen
+            media_query: "(min-width: 900px)"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/890c9788-2a7b-4cd4-8091-698b5dd4fd54/890c9788-2a7b-4cd4-8091-698b5dd4fd54?orgId=1&kiosk&keepTime=1&includeVars=1&refresh=10s
+          card_mod:
+            style: |
+              ha-card {
+                height: 100vh !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none;
+                box-shadow: none;
+                border-radius: 0;
+              }
+              ha-card > div,
+              ha-card iframe {
+                height: 100% !important;
+                width: 100% !important;
+                display: block;
+              }
+
+      - type: conditional
+        conditions:
+          - entity: input_boolean.em_api_server
+            state: "on"
+          - condition: screen
+            media_query: "(max-width: 899px)"
+        view_layout:
+          grid-area: main
+        card:
+          type: custom:addon-iframe-card
+          url: a0d7b954_grafana/d/890c9788-2a7b-4cd4-8091-mobile/890c9788-2a7b-4cd4-8091-mobile?orgId=1&keepTime=1&kiosk&includeVars=1&refresh=10s
+          card_mod:
+            style: |
+              ha-card {
+                height: 100vh !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none;
+                box-shadow: none;
+                border-radius: 0;
+                overflow: visible !important;
+              }
+              ha-card > div,
+              ha-card iframe {
+                height: 100% !important;
+                width: 100% !important;
+                display: block;
+              }
+
+              @media (max-width: 700px) {
+                ha-card > div {
+                  transform: scale(0.9);
+                  transform-origin: 0 0;
+                  width: calc(100% / 0.9);
+                  height: calc(100% / 0.9);
+                }
+              }
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - entity: input_boolean.em_api_server
+                state: "off"
+              - entity: input_select.electricity_provider
+                state: "Flow Power"
+        view_layout:
+          grid-area: main
+        card:
+          type: markdown
+          content: >-
+            # Energy Profit Potential Dashboard
+
+            This dashboard is available for Premium Subscribers that use Amber Electric or LocalVolts.
+
+            
+            The content is not applicable to Flow Power users.
+

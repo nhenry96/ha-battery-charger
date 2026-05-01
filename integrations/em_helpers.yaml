@@ -1,0 +1,1337 @@
+# Energy Manager Helper File
+# This file supports intelligent updates through section markers
+
+# === ENERGY_MANAGER_SHELL_COMMANDS_START v0.3.2 ===
+shell_command:
+  electricity_load: "python3 /config/scripts/electricity_dashboard.py load"
+  electricity_update: "python3 /config/scripts/electricity_dashboard.py update '{{ data }}'"
+  electricity_direct: "python3 /config/scripts/electricity_dashboard.py direct {{ hour }} {{ watts }}"
+  read_electricity_log: "cat /config/electricity_dashboard.log > /config/electricity_log_latest.txt"
+  read_baseline_csv: "cat /config/baseline-consumption.csv"
+  test_shell: echo "Shell command working" > /config/shell_test.txt
+  switch_to_sungrow: cp /config/sungrow_modbus.yaml.disabled /config/modbus.yaml
+  switch_to_sigenergy: cp /config/sigenergy_modbus.yaml.disabled /config/modbus.yaml
+  switch_to_alphaess: cp /config/alphaess_modbus.yaml.disabled /config/modbus.yaml
+  switch_to_goodwe: cp /config/goodwe_modbus.yaml.disabled /config/modbus.yaml
+  switch_to_goodwe_et: cp /config/goodwe_modbus.yaml.disabled /config/modbus.yaml
+  switch_to_fronius: cp /config/fronius_modbus.yaml.disabled /config/modbus.yaml
+  switch_to_solaredge: cp /config/solaredge_modbus.yaml.disabled /config/modbus.yaml
+  list_modbus_files: ls -la /config/*modbus* > /config/modbus_files_list.txt
+  check_config_files: "cd /config; ls -la *modbus.yaml*"
+  get_available_version: "cat /config/.energy_manager/update_status.txt 2>/dev/null || echo 'unknown'"
+  get_changelog_direct: 'python3 -c "import json; data=json.load(open(''/config/.energy_manager/update_details.json'')); print(data.get(''changelog'', ''No changelog available''))" 2>/dev/null || echo ''No changelog available'''
+  check_energy_manager_updates: "python3 /config/scripts/check_energy_manager_updates.py"
+  perform_energy_manager_update: "python3 /config/scripts/perform_energy_manager_update.py"
+  perform_energy_manager_update_force: "python3 /config/scripts/perform_energy_manager_update.py --force-reinstall"
+  generate_ssh_key: 'mkdir -p /config/.energy_manager && ssh-keygen -t ed25519 -f /config/.energy_manager/ssh_key -N "" -C "energy_manager_automation"'
+  read_ssh_key: 'cat /config/.energy_manager/ssh_key.pub 2>/dev/null || echo "no_key"'
+  em_grafana_setup: 'python3 /config/scripts/em_grafana_setup.py'
+
+rest_command:
+  em_motd_mark_read:
+    url: "http://localhost:1880/endpoint/em/motd/mark_read"
+    method: POST
+    content_type: "application/json"
+    payload: '{"source":"dashboard"}'
+# === ENERGY_MANAGER_SHELL_COMMANDS_END ===
+
+# === ENERGY_MANAGER_SENSORS_START v0.3.2 ===
+sensor:
+  - platform: command_line
+    name: energy_manager_changelog_reader
+    command: "cat /config/.energy_manager/changelog_simple.txt 2>/dev/null || echo 'No changelog available'"
+    scan_interval: 30
+
+  # Total Energy Sensors
+  - platform: integration
+    source: sensor.inverter_import_power
+    name: "Imported Energy Total"
+    unique_id: imported_energy_total
+    unit_prefix: k
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+
+  - platform: integration
+    source: sensor.inverter_export_power
+    name: "Exported Energy Total"
+    unique_id: exported_energy_total
+    unit_prefix: k
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+
+  - platform: integration
+    source: sensor.inverter_pv_power
+    name: "PV Energy Total"
+    unique_id: pv_energy_total
+    method: left
+    unit_prefix: k
+    unit_time: h
+    max_sub_interval:
+      minutes: 5
+
+  - platform: integration
+    source: sensor.inverter_battery_charging_power
+    name: "Battery Charging Total"
+    unique_id: batt_charge_energy_total
+    unit_prefix: k
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+
+  - platform: integration
+    source: sensor.inverter_battery_discharging_power
+    name: "Battery Discharging Total"
+    unique_id: batt_discharge_energy_total
+    unit_prefix: k
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+
+command_line:
+  - sensor:
+      name: "Energy Manager Current Version"
+      unique_id: energy_manager_current_version
+      command: "cat /config/.energy_manager/version.txt"
+      value_template: "{{ value.strip() }}"
+      scan_interval: 300 # Check every 5 minutes
+
+  - sensor:
+      name: "Energy Manager Decision"
+      unique_id: energy_manager_decision
+      command: "cat /share/api_data.txt 2>/dev/null || true"
+      scan_interval: 60
+
+  - sensor:
+      name: "Energy Manager Decision Timestamp"
+      unique_id: energy_manager_decision_timestamp
+      command: "stat -c %Y /share/api_data.txt || date +%s"
+      scan_interval: 300
+      command_timeout: 15
+      value_template: "{{ value | trim }}"
+
+  - binary_sensor:
+      name: "SSH Key Exists"
+      unique_id: ssh_key_exists
+      command: 'test -f /config/.energy_manager/ssh_key && echo "found" || echo "not_found"'
+      payload_on: "found"
+      payload_off: "not_found"
+
+# === ENERGY_MANAGER_SENSORS_END ===
+
+# === ENERGY_MANAGER_UPDATE_INPUTS_START v0.3.3 ===
+input_select:
+  inverter_run_mode:
+    name: Inverter mode
+    options:
+      - "Start"
+      - "Stop"
+
+  inverter_ems_mode:
+    name: "EMS Mode"
+    options:
+      - "Self-Consumption mode"
+      - "Forced Mode"
+      - "External EMS"
+      - "VPP"
+    initial: "Self-Consumption mode"
+    icon: mdi:lightning-bolt
+
+  inverter_charge_discharge_mode:
+    name: "Forced Charge/Discharge"
+    options:
+      - "Stop"
+      - "Forced Charge"
+      - "Forced Discharge"
+    initial: "Stop"
+    
+  electricity_distributor:
+    name: "Electricity Distributor"
+    options:
+      - "Not Configured"
+      - "Ausgrid"
+      - "Ausnet"
+      - "CitiPower"
+      - "Endeavour"
+      - "Energex"
+      - "Ergon Energy"
+      - "Essential Energy"
+      - "Evoenergy"
+      - "Jemena"
+      - "Powercor"
+      - "SA Power Networks"
+      - "TasNetworks"
+      - "United Energy"
+    icon: mdi:generator-stationary
+
+  flow_power_price_signal_charge_limit:
+    name: "Price Signal Charge Limit"
+    options:
+      - "Extreme"
+      - "Very High"
+      - "High"
+      - "Average"
+      - "Low"
+      - "Cheap"
+      - "Negative"
+
+input_boolean:
+  inverter_enable_forced_power:
+    name: "Enable Forced Charge/Discharge"
+    initial: false
+    icon: mdi:battery-sync
+
+  restart_required:
+    name: "Restart Required"
+    initial: false
+    icon: mdi:restart
+
+  inverter_export_power_limit_enabled_input:
+    name: "Export Power Limit Enabled"
+    initial: false
+    icon: mdi:transmission-tower
+
+  sigenergy_auto_enable_remote_ems:
+    name: "Auto-enable Sigenergy Remote EMS"
+    initial: true
+    icon: mdi:auto-mode
+
+  energy_manager_update_available:
+    name: "Energy Manager Update Available"
+    initial: false
+    icon: mdi:update
+
+  energy_manager_auto_update_check:
+    name: "Enable Automatic Update Checks"
+    initial: true
+    icon: mdi:update
+
+  em_api_decision_trigger:
+    name: "Energy Manager Decision Trigger"
+    initial: false
+    icon: mdi:information
+
+  em_api_server:
+    name: "Energy Manager API Server"
+    initial: true
+    icon: mdi:information
+
+  notification_price:
+    name: "Price Spike Notifications"
+    initial: true
+    icon: mdi:bell-ring
+
+  notification_warning:
+    name: "Warning Notifications"
+    initial: true
+    icon: mdi:bell-ring
+
+  emergency_override:
+    name: "Emergency Override"
+    initial: false
+    icon: mdi:car-brake-alert
+  
+  energy_flow_visual:
+    name: "Energy Flow Visual"
+    initial: true
+    icon: mdi:home-plus-outline
+
+  electricity_distributor_demand_enabled:
+    name: "I am on a demand plan"
+    icon: mdi:home-alert
+
+  sellbuy_mode_enabled:
+    name: "Sell/Buy Mode Enabled"
+    icon: mdi:autorenew
+
+  energy_control_auto_reenable:
+    name: Auto re-enable Energy Control
+    icon: mdi:timer-refresh
+
+  flowpower_bad_weather_export:
+    name: Flow Power Bad Weather Export
+    icon: mdi:home-export-outline
+
+  flowpower_in_peak:
+    name: Flow Power In Peak Period
+    icon: mdi:information
+
+  flowpower_enable_peak_export:
+    name: Flow Power Enable Peak Export
+    icon: mdi:home-export-outline
+
+  enable_curtailing:
+    name: Enable Curtailing
+    icon: mdi:home-lightning-bolt-outline
+    initial: true
+
+input_number:
+  inverter_max_soc:
+    name: "Maximum SOC"
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: box
+    icon: mdi:battery-high
+
+  inverter_min_soc:
+    name: "Minimum SOC"
+    min: 0
+    max: 90
+    step: 1
+    unit_of_measurement: "%"
+    mode: box
+    icon: mdi:battery-low
+
+  inverter_max_charge_power:
+    name: "Max Battery Charge Power"
+    min: 100
+    max: 32600
+    step: 100
+    unit_of_measurement: "W"
+    mode: box
+    icon: mdi:battery-charging
+
+  inverter_max_discharge_power:
+    name: "Max Battery Discharge Power"
+    min: 100
+    max: 32600
+    step: 100
+    unit_of_measurement: "W"
+    mode: box
+    icon: mdi:battery-minus
+
+  inverter_pv_power_limit:
+    name: "PV Power Limit"
+    min: 100
+    max: 50000
+    step: 100
+    unit_of_measurement: "W"
+    mode: box
+    icon: mdi:solar-power-variant-outline
+
+  inverter_charge_discharge_power:
+    name: "Forced Charge/Discharge Power"
+    min: 0
+    max: 25000
+    step: 100
+    unit_of_measurement: "W"
+    mode: box
+    icon: mdi:lightning-bolt-outline
+
+  # Safety limits
+  safety_max_charge_power:
+    name: "Safety Limit - Max Charge Power"
+    min: 1000
+    max: 25600
+    step: 100
+    mode: box
+    unit_of_measurement: "W"
+    icon: mdi:shield-check
+
+  safety_max_discharge_power:
+    name: "Safety Limit - Max Discharge Power"
+    min: 1000
+    max: 25600
+    step: 100
+    mode: box
+    unit_of_measurement: "W"
+    icon: mdi:shield-check
+
+  inverter_reserved_soc_backup:
+    name: "Reserved SoC for Backup"
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: box
+    icon: mdi:battery-plus
+
+  inverter_export_power_limit_input:
+    name: "Export Power Limit"
+    min: 0
+    max: 30000
+    unit_of_measurement: "W"
+    mode: box
+    icon: mdi:transmission-tower-export
+
+  inverter_export_power_hardlimit:
+    name: "Export Power Hard Limit"
+    min: 0
+    max: 30000
+    step: 100
+    unit_of_measurement: "W"
+    mode: box
+    icon: mdi:transmission-tower-export
+
+  battery_charge_power_hardlimit:
+    name: "Battery Charge Power Hard Limit"
+    min: 0
+    max: 36000
+    step: 100
+    mode: box
+    unit_of_measurement: "W"
+    icon: mdi:battery-charging-high
+
+  battery_discharge_power_hardlimit:
+    name: "Battery Discharge Power Hard Limit"
+    min: 0
+    max: 36000
+    step: 100
+    mode: box
+    unit_of_measurement: "W"
+    icon: mdi:battery-charging-low
+
+  battery_capacity:
+    name: Battery Capacity
+    min: 0
+    max: 100
+    step: 0.01
+    mode: box
+    icon: mdi:battery
+    unit_of_measurement: kWh
+
+  battery_1:
+    name: battery_1
+    min: 0
+    max: 100
+    mode: box
+    icon: mdi:battery-80
+
+  battery_2:
+    name: battery_2
+    min: 0
+    max: 100
+    mode: box
+    icon: mdi:battery-60
+
+  battery_3:
+    name: battery_3
+    min: 0
+    max: 100
+    mode: box
+    icon: mdi:battery-50
+
+  battery_4:
+    name: battery_4
+    min: 0
+    max: 100
+    mode: box
+    icon: mdi:battery-40
+
+  battery_5:
+    name: battery_5
+    min: 0
+    max: 100
+    mode: box
+    icon: mdi:battery-30
+
+  battery_6:
+    name: battery_6
+    min: 0
+    max: 100
+    mode: box
+    icon: mdi:battery-20
+
+  price_1_normal_mode:
+    name: price_1_normal_mode
+    min: 0
+    max: 20
+    step: 0.01
+    mode: box
+    icon: mdi:currency-usd
+
+  price_2_normal_mode:
+    name: price_2_normal_mode
+    min: 0
+    max: 20
+    step: 0.01
+    mode: box
+    icon: mdi:currency-usd
+
+  price_3_normal_mode:
+    name: price_3_normal_mode
+    min: 0
+    max: 20
+    step: 0.01
+    mode: box
+    icon: mdi:currency-usd
+
+  price_4_normal_mode:
+    name: price_4_normal_mode
+    min: 0
+    max: 20
+    step: 0.01
+    mode: box
+    icon: mdi:currency-usd
+
+  price_5_normal_mode:
+    name: price_5_normal_mode
+    min: 0
+    max: 20
+    step: 0.01
+    mode: box
+    icon: mdi:currency-usd
+
+  price_6_normal_mode:
+    name: price_6_normal_mode
+    min: 0
+    max: 20
+    step: 0.01
+    mode: box
+    icon: mdi:currency-usd
+
+  battery_use_cost:
+    name: battery_use_cost
+    min: 0
+    max: 50
+    step: 1
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  high_sell_price:
+    name: high_sell_price
+    min: 0
+    max: 1500
+    step: 1
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  high_sell_battery_reserve:
+    name: high_sell_battery_reserve
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: box
+
+  battery_morning_prep:
+    name: battery_morning_prep
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+    icon: mdi:currency-usd
+
+  battery_morning_limit:
+    name: battery_morning_limit
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+    icon: mdi:currency-usd
+
+  battery_evening_prep:
+    name: battery_evening_prep
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+    icon: mdi:currency-usd
+
+  grid_buy_price_night_spike_prep:
+    name: grid_buy_price_night_spike_prep
+    min: -20
+    max: 40
+    step: 1
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  grid_buy_price_day_spike_prep:
+    name: grid_buy_price_day_spike_prep
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  grid_buy_price_day:
+    name: grid_buy_price_day
+    min: -20
+    max: 100
+    step: 1
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  grid_sell_price_night:
+    name: grid_sell_price_night
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  grid_sell_price_day:
+    name: grid_sell_price_day
+    min: 0
+    max: 2000
+    step: 5
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:currency-usd
+
+  electricity_closing_import_price:
+    name: "Electricity: Closing Import Price"
+    unit_of_measurement: $
+    icon: mdi:cash-minus
+    initial: 0
+    min: -10000
+    max: 10000
+    step: 0.00001
+    mode: box
+
+  # Export price at the end of the 5 minute period
+  electricity_closing_export_price:
+    name: "Electricity: Closing Export Price"
+    unit_of_measurement: $
+    icon: mdi:cash-plus
+    initial: 0
+    min: -10000
+    max: 10000
+    step: 0.00001
+    mode: box
+
+  # Import cost at the end of the 5 minute period
+  electricity_import_cost_5_minutes:
+    name: "Electricity: Import Cost (5 Minutes)"
+    unit_of_measurement: $
+    icon: mdi:cash-minus
+    initial: 0
+    min: -10000
+    max: 10000
+    step: 0.001
+    mode: box
+
+  # Export profit at the end of the 5 minute period
+  electricity_export_profit_5_minutes:
+    name: "Electricity: Export Profit (5 Minutes)"
+    unit_of_measurement: $
+    icon: mdi:cash-plus
+    initial: 0
+    min: -10000
+    max: 10000
+    step: 0.001
+    mode: box
+
+  ascore_now:
+    name: "Availability Score Now"
+    icon: mdi:clock-start
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_1h:
+    name: "Availability Score in 1hr"
+    icon: mdi:clock-time-one-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_2h:
+    name: "Availability Score in 2hr"
+    icon: mdi:clock-time-two-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_3h:
+    name: "Availability Score in 3hr"
+    icon: mdi:clock-time-three-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_4h:
+    name: "Availability Score 4hr"
+    icon: mdi:clock-time-four-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_5h:
+    name: "Availability Score in 5hr"
+    icon: mdi:clock-time-five-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_6h:
+    name: "Availability Score in 6hr"
+    icon: mdi:clock-time-six-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_7h:
+    name: "Availability Score in 7hr"
+    icon: mdi:clock-time-seven-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_8h:
+    name: "Availability Score in 8hr"
+    icon: mdi:clock-time-eight-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_9h:
+    name: "Availability Score in 9hr"
+    icon: mdi:clock-time-nine-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_10h:
+    name: "Availability Score in 10hr"
+    icon: mdi:clock-time-ten-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_11h:
+    name: "Availability Score in 11hr"
+    icon: mdi:clock-time-eleven-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_12h:
+    name: "Availability Score in 12hr"
+    icon: mdi:clock-time-twelve-outline
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_1d:
+    name: "Availability Score in 1d"
+    icon: mdi:calendar
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_2d:
+    name: "Availability Score in 2d"
+    icon: mdi:calendar
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_3d:
+    name: "Availability Score in 3d"
+    icon: mdi:calendar
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_4d:
+    name: "Availability Score in 4d"
+    icon: mdi:calendar
+    min: 0
+    max: 100
+    step: 1
+
+  ascore_5d:
+    name: "Availability Score in 5d"
+    icon: mdi:calendar
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_now:
+    name: "Profit Score Now"
+    icon: mdi:clock-start
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_1h:
+    name: "Profit Score in 1hr"
+    icon: mdi:clock-time-one-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_2h:
+    name: "Profit Score in 2hr"
+    icon: mdi:clock-time-two-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_3h:
+    name: "Profit Score in 3hr"
+    icon: mdi:clock-time-three-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_4h:
+    name: "Profit Score 4hr"
+    icon: mdi:clock-time-four-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_5h:
+    name: "Profit Score in 5hr"
+    icon: mdi:clock-time-five-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_6h:
+    name: "Profit Score in 6hr"
+    icon: mdi:clock-time-six-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_7h:
+    name: "Profit Score in 7hr"
+    icon: mdi:clock-time-seven-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_8h:
+    name: "Profit Score in 8hr"
+    icon: mdi:clock-time-eight-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_9h:
+    name: "Profit Score in 9hr"
+    icon: mdi:clock-time-nine-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_10h:
+    name: "Profit Score in 10hr"
+    icon: mdi:clock-time-ten-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_11h:
+    name: "Profit Score in 11hr"
+    icon: mdi:clock-time-eleven-outline
+    min: 0
+    max: 100
+    step: 1
+
+  pscore_12h:
+    name: "Profit Score in 12hr"
+    icon: mdi:clock-time-twelve-outline
+    min: 0
+    max: 100
+    step: 1
+
+  score_buy_extreme_low:
+    name: "Score Buy Extreme Low"
+    icon: mdi:currency-usd
+    min: -1
+    max: 1
+    step: 0.01
+
+  score_buy_very_low:
+    name: "Score Buy Very Low"
+    icon: mdi:currency-usd
+    min: -1
+    max: 1
+    step: 0.01
+
+  score_buy_low:
+    name: "Score Buy Low"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_buy_ok:
+    name: "Score Buy Ok"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_buy_high:
+    name: "Score Buy High"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_buy_very_high:
+    name: "Score Buy Very High"
+    icon: mdi:currency-usd
+    min: 0
+    max: 2
+    step: 0.01
+
+  score_buy_spike:
+    name: "Score Buy Spike"
+    icon: mdi:currency-usd
+    min: 0
+    max: 5
+    step: 0.01
+
+  score_sell_negative:
+    name: "Score Sell Negative"
+    icon: mdi:currency-usd
+    min: -0.1
+    max: 1
+    step: 0.01
+
+  score_sell_very_low:
+    name: "Score Sell Very Low"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_sell_low:
+    name: "Score Sell Low"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_sell_ok:
+    name: "Score Sell Ok"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_sell_high:
+    name: "Score Sell High"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+
+  score_sell_very_high:
+    name: "Score Sell Very High"
+    icon: mdi:currency-usd
+    min: 0
+    max: 2
+    step: 0.01
+
+  score_sell_extreme:
+    name: "Score Sell Extreme"
+    icon: mdi:currency-usd
+    min: 0
+    max: 5
+    step: 0.01
+
+  weight_as_price:
+    name: "Weight Availability Price"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  weight_as_solar:
+    name: "Weight Availability Solar"
+    icon: mdi:white-balance-sunny
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  weight_as_usage:
+    name: "Weight Availability Usage"
+    icon: mdi:home
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  weight_as_battery:
+    name: "Weight Availability Battery"
+    icon: mdi:home-battery
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  weight_ps_sell_price:
+    name: "Weight Profit Sell Price"
+    icon: mdi:currency-usd
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  weight_ps_headroom:
+    name: "Weight Profit Battery Headroom"
+    icon: mdi:battery-80
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  weight_ps_night_survival:
+    name: "Weight Profit Night Survival"
+    icon: mdi:weather-night
+    min: 0
+    max: 1
+    step: 0.01
+    mode: box
+
+  current_hour:
+    name: "Current Hour"
+    icon: mdi:clock-outline
+    min: 0
+    max: 23
+    step: 1
+
+  wmaxlimpct:
+    name: "WMaxLimPct"
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+    unit_of_measurement: "%"
+
+  sellbuy_mode_battery_reserve:
+    name: "Sell/Buy Mode Battery Reserve"
+    icon: mdi:battery-20
+    min: 0
+    max: 100
+    unit_of_measurement: "%"
+    step: 1
+    mode: box
+
+  sellbuy_mode_diff:
+    name: "Sell/Buy Mode Diff"
+    icon: mdi:calculator-variant-outline
+    min: 1
+    max: 100
+    unit_of_measurement: "c"
+    step: 1
+    mode: box
+
+  flowpower_buy_price:
+    name: Flow Power Buy Price kWh
+    icon: mdi:currency-usd
+    min: 0
+    max: 100
+    step: 0.01
+    mode: box
+    unit_of_measurement: c/kWh
+
+  flowpower_offpeak_feedin_price:
+    name: Flow Power OffPeak Feedin Price kWh
+    icon: mdi:currency-usd
+    min: -10
+    max: 100
+    step: 0.01
+    mode: box
+    unit_of_measurement: c/kWh
+
+  flowpower_peak_feedin_price:
+    name: Flow Power Peak Feedin Price kWh
+    icon: mdi:currency-usd
+    min: 0
+    max: 100
+    step: 0.01
+    mode: box
+    unit_of_measurement: c/kWh
+
+  flowpower_peak_battery_reserve:
+    name: Flow Power Peak Export Battery Reserve
+    min: 0
+    max: 100
+    mode: box
+    unit_of_measurement: "%"
+
+  flowpower_max_grid_soc:
+    name: Max SOC for Grid Charge
+    min: 0
+    max: 100
+    mode: box
+    unit_of_measurement: "%"
+
+  prev_imported_energy_total:
+    name: Previous imported energy total
+    min: 0
+    max: 100000
+    step: 0.001
+
+  prev_exported_energy_total:
+    name: Previous exported energy total
+    min: 0
+    max: 100000
+    step: 0.001
+
+  inverter_import_energy_5_minutes:
+    name: Import Energy 5 Minutes
+    min: 0
+    max: 100000
+    step: 0.001
+
+  inverter_export_energy_5_minutes:
+    name: Export Energy 5 Minutes
+    min: 0
+    max: 100000
+    step: 0.001
+
+  flowpower_max_export_percent_good_weather:
+    name: Max Export rate percentage for good weather
+    icon: mdi:home-export-outline
+    min: 0
+    max: 100
+    mode: box
+    unit_of_measurement: "%"
+
+  flowpower_max_export_percent_bad_weather:
+    name: Max Export rate percentage for bad weather
+    icon: mdi:home-export-outline
+    min: 0
+    max: 100
+    mode: box
+    unit_of_measurement: "%"
+
+  goodwe_schedule_8slot:
+    name: GoodWe Schedule 8-Slot
+    min: 1
+    max: 8
+    mode: box
+    icon: mdi:numeric
+
+  goodwe_schedule_4slot:
+    name: GoodWe Schedule 4-Slot
+    min: 1
+    max: 4
+    mode: box
+    icon: mdi:numeric
+
+  curtail_cents:
+    name: Curtail Cents
+    min: -10
+    max: 20
+    initial: 0
+    unit_of_measurement: "c"
+    mode: box
+    icon: mdi:transmission-tower-off
+
+input_text:
+  saved_inverter_brand:
+    name: "Saved Inverter Brand"
+
+  energy_manager_current_version:
+    name: "Energy Manager Current Version (Hidden)"
+    initial: "0.0.1"
+    max: 10
+
+  energy_manager_available_version:
+    name: "Energy Manager Available Version (Hidden)"
+    initial: "unknown"
+    max: 10
+
+  energy_manager_changelog:
+    name: "Energy Manager Changelog"
+    initial: ""
+    max: 255
+
+  ssh_public_key:
+    name: "SSH Public Key"
+    max: 255
+    initial: ""
+
+  ssh_key_status:
+    name: "SSH Key Status"
+    max: 50
+    initial: "unknown"
+
+  ssh_key_dismissed:
+    name: "SSH Key Message Dismissed"
+    max: 10
+    initial: "false"
+
+  ascore_now_text:
+    name: "Availability Score Now Text"
+    max: 100
+
+  ascore_1h_text:
+    name: "Availability Score 1h Text"
+    max: 100
+
+  ascore_2h_text:
+    name: "Availability Score 2h Text"
+    max: 100
+
+  ascore_3h_text:
+    name: "Availability Score 3h Text"
+    max: 100
+
+  ascore_4h_text:
+    name: "Availability Score 4h Text"
+    max: 100
+
+  ascore_5h_text:
+    name: "Availability Score 5h Text"
+    max: 100
+
+  ascore_6h_text:
+    name: "Availability Score 6h Text"
+    max: 100
+
+  ascore_7h_text:
+    name: "Availability Score 7h Text"
+    max: 100
+
+  ascore_8h_text:
+    name: "Availability Score 8h Text"
+    max: 100
+
+  ascore_9h_text:
+    name: "Availability Score 9h Text"
+    max: 100
+
+  ascore_10h_text:
+    name: "Availability Score 10h Text"
+    max: 100
+
+  ascore_11h_text:
+    name: "Availability Score 11h Text"
+    max: 100
+
+  ascore_12h_text:
+    name: "Availability Score 12h Text"
+    max: 100
+
+  ascore_1d_text:
+    name: "Availability Score 1d Text"
+    max: 100
+
+  ascore_2d_text:
+    name: "Availability Score 2d Text"
+    max: 100
+
+  ascore_3d_text:
+    name: "Availability Score 3d Text"
+    max: 100
+
+  ascore_4d_text:
+    name: "Availability Score 4d Text"
+    max: 100
+
+  ascore_5d_text:
+    name: "Availability Score 5d Text"
+    max: 100
+
+  pscore_now_text:
+    name: "Profit Score Now Text"
+    max: 100
+
+  pscore_1h_text:
+    name: "Profit Score 1h Text"
+    max: 100
+
+  pscore_2h_text:
+    name: "Profit Score 2h Text"
+    max: 100
+
+  pscore_3h_text:
+    name: "Profit Score 3h Text"
+    max: 100
+
+  pscore_4h_text:
+    name: "Profit Score 4h Text"
+    max: 100
+
+  pscore_5h_text:
+    name: "Profit Score 5h Text"
+    max: 100
+
+  pscore_6h_text:
+    name: "Profit Score 6h Text"
+    max: 100
+
+  pscore_7h_text:
+    name: "Profit Score 7h Text"
+    max: 100
+
+  pscore_8h_text:
+    name: "Profit Score 8h Text"
+    max: 100
+
+  pscore_9h_text:
+    name: "Profit Score 9h Text"
+    max: 100
+
+  pscore_10h_text:
+    name: "Profit Score 10h Text"
+    max: 100
+
+  pscore_11h_text:
+    name: "Profit Score 11h Text"
+    max: 100
+
+  pscore_12h_text:
+    name: "Profit Score 12h Text"
+    max: 100
+
+  energy_control_duration:
+    name: Energy Control Duration
+    initial: "01:00:00"
+    min: 0
+    max: 8
+    pattern: "^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
+
+  price_signal:
+    name: "Price Signal"
+    max: 20
+
+  aemo_region:
+    name: "AEMO Region"
+    min: 4
+    max: 4
+
+input_datetime:
+  energy_manager_last_update_check:
+    name: "Last Update Check"
+    has_date: true
+    has_time: true
+
+  flowpower_peak_start_time:
+    name: Flow Power Peak Start
+    has_date: false
+    has_time: true
+    initial: "17:30:00"
+    icon: mdi:clock-start
+
+  flowpower_peak_end_time:
+    name: Flow Power Peak End
+    has_date: false
+    has_time: true
+    initial: "19:30:00"
+    icon: mdi:clock-end
+
+timer:
+  energy_control:
+    name: Energy Control Timer
+    restore: true
+
+    # === ENERGY_MANAGER_UPDATE_INPUTS_END ===
+
+

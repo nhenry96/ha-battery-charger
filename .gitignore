@@ -1,0 +1,9 @@
+# Standard HA ignores (inside the allowed folders)
+*.db
+*.db-shm
+*.db-wal
+*.log
+secrets.yaml
+.storage/
+.cache/
+custom_components/

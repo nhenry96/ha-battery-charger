@@ -1,0 +1,17 @@
+# === ENERGY_MANAGER_AUTOMATIONS_START v0.2.5 ===
+
+- id: em_placeholder_do_not_remove
+  alias: "EM Placeholder (safe)"
+  description: "Keeps YAML list shape when there are no other automations."# === ENERGY_MANAGER_AUTOMATIONS_END ===
+  initial_state: false
+  trigger:
+    - platform: homeassistant
+      event: start
+  condition: []
+  action: []
+  mode: single
+
+# === ENERGY_MANAGER_AUTOMATIONS_END ===
+
+# User customizations below this line are preserved during updates
+# Add your personal automations here
